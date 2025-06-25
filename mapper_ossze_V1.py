@@ -273,7 +273,7 @@ class ECMWF:
         precipitations = np.full((len(self.forecast_hours), num_lats, num_lons), np.nan)
         times = []
 
-        save_dir = f"ecmwf_grib_data_{self.inittime.strftime("%Y%m%d")}/{self.name}-0p25"
+        save_dir = f"ecmwf_grib_data_{self.inittime.strftime('%Y%m%d')}/{self.name}-0p25"
         if not os.path.exists(save_dir): # ha nem létezik még
             os.makedirs(save_dir)
 
@@ -709,35 +709,37 @@ class MeasuredData:
         T0 = 288.15
         g = 9.80665
         R = 8.31432
-        
+
         if elevation is None:
             self.mslp = [np.nan] * len(self.pressure)
         else:
             h = float(elevation)
+            self.mslp = []  # inicializáljuk a listát
             for p, t in zip(self.pressure, self.temperature):
-                if p is not None and not np.isnan(p) and t is not None and not np.isnan(t):
+                if p is None or np.isnan(p) or p <= 0:
+                    mslp = np.nan
+                elif t is None or np.isnan(t):
+                    mslp = np.nan
+                else:
                     if (T0 - L * h) == 0:
                         mslp = np.nan
                     else:
                         t_kelvin = t + 273.15 
                         factor = 1 - (L * h / t_kelvin) 
 
-                        if factor <= 0 or (t + 273.15) <= 0:
+                        if factor <= 0 or t_kelvin <= 0:
                             mslp = np.nan
                         else:
                             exponent = g * M / (R * L)
-                            mslp = p / ((1 - L * h / T0) ** exponent)
-                            exponent_original = -1*exponent
-                            mslp = p * (factor ** exponent_original) 
-                else:
-                    mslp = np.nan
+                            exponent_original = -1 * exponent
+                            mslp = p * (factor ** exponent_original)
                 self.mslp.append(mslp)
 
 # ------------------------------------------------------------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------------------------------------------------
 
-def plotCombinedDataOnMap(model_data, all_measured_data, plot_time_index, param_to_plot, model_name="AIFS"):
+def plotCombinedDataOnMap(model_data, all_measured_data, plot_time_index, param_to_plot, model_name):
     """Plot gridded model forecasts and point-based observations on a map.
 
     Displays a selected meteorological parameter at a given forecast lead time using
@@ -754,7 +756,7 @@ def plotCombinedDataOnMap(model_data, all_measured_data, plot_time_index, param_
     param_to_plot : str
         Parameter name to plot (e.g., "temperature", "precipitation").
     model_name : str, optional
-        Name of the model to display in the title (default is "AIFS").
+        Name of the model to display in the title.
 
     Returns
     -------
@@ -831,10 +833,9 @@ def plotCombinedDataOnMap(model_data, all_measured_data, plot_time_index, param_
         lat, lon = coords
         if synop_station_name in all_measured_data:
             measured_data_obj = all_measured_data[synop_station_name]
-            # Ellenőrizzük, hogy az index valid-e a mért adatokra is
             if plot_time_index < len(getattr(measured_data_obj, param_to_plot)): #Van-e egyáltalán annyi adat, hogy a plot_time_index-edik elemhez hozzá tudjunk férni?
                 value = getattr(measured_data_obj, param_to_plot)[plot_time_index]
-                if value is not None and not np.isnan(value) and value > -900: # Szűrjük: None, nan, vagy hiányzó adat (-999)
+                if value is not None and not np.isnan(value):
                     measured_lons.append(lon)
                     measured_lats.append(lat)
                     measured_values.append(value)
@@ -856,7 +857,6 @@ def plotCombinedDataOnMap(model_data, all_measured_data, plot_time_index, param_
     plt.tight_layout()
     return fig, ax, m, pcolormesh_obj, scatters, texts
 
-#---------------------------------- ITT TARTOK -----------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------------------------------------------------
 def update_combined_map(frame, model_data, all_measured_data, param_to_plot, model_name, m, pcolormesh_obj, scatters, texts, ax):
     """ Updates the combined map for each frame of the animation.
@@ -941,85 +941,117 @@ def update_combined_map(frame, model_data, all_measured_data, param_to_plot, mod
     return [pcolormesh_obj, scatters] + texts # ez kell a FuncAnimation-nek, hogy tudja, mit frissítsen
 
 # ------------------------------------------------------------------------------------------------------------------------------------
-def create_combined_map_animation(model_data, all_measured_data, param_to_plot, model_name="AIFS", output_filename="combined_animation.gif", fps=0.5):
-    """
-    Létrehoz egy animációt a kombinált térképes adatokból (modell rács + mért pontok).
+output_dir_base = rf"C:/Users/opago/Documents/Projektek/TDK/Z_animations_diagrams/anims/combined"
 
-    Args:
-        model_data (ECMWF osztály objektum): A modell adatok, pl. ifs_data vagy aifs_data.
-        all_measured_data (dict): A mért adatokat tartalmazó dictionary.
-        param_to_plot (str): A megjelenítendő paraméter (pl. 'temperature').
-        model_name (str): A megjelenített modell neve (pl. "IFS").
-        output_filename (str): A kimeneti GIF fájl neve.
-        fps (int): Képkockák másodpercenként (sebesség).
+def create_combined_map_animation(model_data, all_measured_data, param_to_plot, model_name, output_filename="combined_animation.gif", fps=0.5):
+    """ Creates an animated map visualization combining model grid data and measured station data.
+
+    Parameters
+    ----------
+    model_data : object
+        The weather model data object (e.g., IFS or AIFS data) containing gridded forecasts.
+    all_measured_data : dict
+        Dictionary containing measured data for multiple stations, keyed by station name.
+    param_to_plot : str
+        The meteorological parameter to plot (e.g., 'temperature', 'precipitation').
+    model_name : str, optional
+        The name of the model to display in the plot title.
+    output_filename : str, optional
+        The filename for the output animation GIF (default is "combined_animation.gif").
+    fps : float, optional
+        Frames per second for the animation speed (default is 0.5).
+
+    Returns
+    -------
+    None
+        Saves the animation as a GIF file to the specified output path and closes the plot.
     """
-    print(f"Creating combined animation for {param_to_plot} ({model_name})...")
+
+    print(f"Creating combined animation for {param_to_plot}...")
     
-    # Inicializálja az első képkockát
+    # --- első képkocka ---
     fig, ax, m, pcolormesh_obj, scatters, texts = plotCombinedDataOnMap(model_data, all_measured_data, 0, param_to_plot, model_name)
 
-    # Animáció létrehozása
+    # --- animáció ---
     anim = animation.FuncAnimation(fig, update_combined_map, frames=len(forecast_hours),
                                    fargs=(model_data, all_measured_data, param_to_plot, model_name, m, pcolormesh_obj, scatters, texts, ax),
                                    interval=1000 // fps, blit=False, repeat=True) # blit=False ajánlott, ha a szövegobjektumokat újra kell rajzolni
 
     writer = animation.PillowWriter(fps=fps)
     animation_output_path = os.path.join(output_dir_base, output_filename)
-    anim.save(animation_output_path, writer=writer)
-    plt.close(fig)
-    print(f"Combined animation saved to {animation_output_path}")
 
+    try:
+        anim.save(animation_output_path, writer=writer)
+        print(f"Combined animation saved to {animation_output_path}")
+    except Exception as e:
+        print(f"Error saving animation: {e}")
+    finally:
+        plt.close(fig)
 
-# --- Fő futtatási logika ---
-if __name__ == "__main__":
-    # A fő kimeneti mappa beállítása
-    output_dir_base = r"C:\Users\opago\Documents\Projektek\TDK\Z_animations_diagrams\anims\combined" # Új mappa a kombinált animációknak
+# ------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------
+def generate_animations(model_name, inittime, grid_lats, grid_lons, synop_stations, param_units, create_combined_map_animation, output_dir_base):
+    """Generates and saves combined weather model and measured data animations for given parameters.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the weather model to process ('AIFS' or 'IFS').
+        inittime : datetime.datetime
+            Initialization time for the weather model forecast.
+        grid_lats : array-like
+            Array of latitudes for the model grid.
+        grid_lons : array-like
+            Array of longitudes for the model grid.
+        synop_stations : dict
+            Dictionary of SYNOP station names as keys and their (latitude, longitude) tuples as values.
+        param_units : dict
+            Dictionary of meteorological parameters to plot with their units, keys are parameter names.
+        create_combined_map_animation : function
+            Function that creates and saves the combined map animation given model and measured data.
+        output_dir_base : str
+            Path to the base directory where animations will be saved.
+
+        Raises
+        ------
+        ValueError
+            If the model_name is not supported ('AIFS' or 'IFS').
+
+        Returns
+        -------
+        None
+            Saves GIF animations for each parameter to the output directory.
+        """
+
     if not os.path.exists(output_dir_base):
         os.makedirs(output_dir_base)
 
-    # 1. SYNOP metaadatok letöltése és betöltése
-    master_measured_data_obj = MeasuredData(0, 0) 
+    master_measured_data_obj = MeasuredData(0, 0)  # ideiglenes objektum metadata kezeléshez
     master_measured_data_obj.download_metadata()
     master_measured_data_obj.load_metadata()
 
-    # 2. Modell adatok előkészítése (IFS-t használjuk az animációhoz)
-    # A processForecast most a Basemap régiójának rácspontjait kapja meg.
-    print("\n--- Modell adatok feldolgozása (AIFS) ---")
-    aifs = AIFS(inittime)
-    # Fontos: a Basemap által lefedett régió kiterjedését használjuk a processForecast-hoz
-    # Mivel a Basemap min_lon, max_lon, min_lat, max_lat-ból indul ki
-    # és a grid_lats/grid_lons a 0.25°-os lépésekkel van definiálva,
-    # ezeket kell átadni a processForecast-nak.
-    aifs_mslps, aifs_wind_speeds, aifs_temperatures, aifs_dewpoints, aifs_precipitations, aifs_times = \
-        aifs.processForecast(grid_lats, grid_lons)
-    
-    # Tároljuk az összes modellt egy dictionary-ben, a könnyebb hozzáférésért
-    # Fontos: Ezeket a processForecast hívásokat futtatni kell, mielőtt az animációkat hívjuk!
-    model_data_store = {
-        'aifs': {
-            'mslps': aifs_mslps,
-            'wind_speeds': aifs_wind_speeds,
-            'temperatures': aifs_temperatures,
-            'dewpoints': aifs_dewpoints,
-            'precipitations': aifs_precipitations,
-            'times': aifs_times
-        },
-        # 'aifs': { ... hasonlóan az aifs adatokhoz, ha használnánk }
-    }
-    # Ideiglenesen átalakítjuk az IFS objektumot, hogy az adatok közvetlenül elérhetőek legyenek.
-    # Ez nem ideális objektumorientáltan, de most az egyszerűség kedvéért.
-    # Később érdemes lehet egy külön osztályt létrehozni a feldolgozott modell adatok tárolására.
-    aifs.mslps = aifs_mslps
-    aifs.wind_speeds = aifs_wind_speeds
-    aifs.temperatures = aifs_temperatures
-    aifs.dewpoints = aifs_dewpoints
-    aifs.precipitations = aifs_precipitations
-    aifs.times = aifs_times
+    print(f"\n--- Processing model data ({model_name}) ---")
 
+    if model_name.upper() == "AIFS":
+        model_instance = AIFS(inittime)
+    elif model_name.upper() == "IFS":
+        model_instance = IFS(inittime)
+    else:
+        raise ValueError(f"Unsupported model name: {model_name}")
 
-    # 3. Mért adatok gyűjtése minden SYNOP állomásra
+    mslps, wind_speeds, temperatures, dewpoints, precipitations, times = model_instance.processForecast(grid_lats, grid_lons)
+
+    model_instance.mslps = mslps
+    model_instance.wind_speeds = wind_speeds
+    model_instance.temperatures = temperatures
+    model_instance.dewpoints = dewpoints
+    model_instance.precipitations = precipitations
+    model_instance.times = times
+
     all_measured_data_for_map = {}
-    print("\n--- SYNOP adatok feldolgozása minden állomásra ---")
+
+    print("\n--- Processing SYNOP data for all stations ---")
     for synop_station_name_in_dict, coords in tqdm(synop_stations.items(), desc="Processing SYNOP stations"):
         lat, lon = coords
         
@@ -1034,14 +1066,24 @@ if __name__ == "__main__":
             if current_synop_measured_data_obj.timestamps:
                 all_measured_data_for_map[synop_station_name_in_dict] = current_synop_measured_data_obj
 
-    # 4. Kombinált animációk generálása minden paraméterre
-    print("\n--- Kombinált térképes animációk generálása ---")
+    print("\n--- Generating combined map animations ---")
     if not all_measured_data_for_map:
-        print("Nincsenek feldolgozott mért adatok, animációk nem generálhatók.")
+        print("No processed measured data, animations cannot be generated.")
     else:
         for param_name in param_units.keys():
-            create_combined_map_animation(aifs, all_measured_data_for_map, param_name, model_name="AIFS",
-                                            output_filename=f"combined_AIFS_{param_name}_animation_{inittime.strftime('%Y%m%d%H')}.gif",
-                                            fps=0.5)
+            output_filename = f"combined_{model_name}_{param_name}_animation_{inittime.strftime('%Y%m%d%H')}.gif"
+            create_combined_map_animation(model_instance, all_measured_data_for_map, param_name, model_name=model_name,
+                                          output_filename=output_filename, fps=0.5)
 
-    print("\n--- Animációk kész! ---")
+    print("\n--- Animations ready ---")
+
+generate_animations(
+    model_name="IFS",
+    inittime=inittime,
+    grid_lats=grid_lats,
+    grid_lons=grid_lons,
+    synop_stations=synop_stations,
+    param_units=param_units,
+    create_combined_map_animation=create_combined_map_animation,
+    output_dir_base=output_dir_base
+)
