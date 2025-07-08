@@ -34,7 +34,7 @@ synop_stations = {
     "Poroszló (SYNOP: 12866)": (47.65583, 20.65333),
     "Eger (SYNOP: 12870)": (47.90389, 20.38889),
     "Debrecen (SYNOP: 12882)": (47.48417, 21.60556),
-    "Nyíregyháza/Napkor (SYNOP: 12892)": (47.96194, 21.88667),
+    #"Nyíregyháza/Napkor (SYNOP: 12892)": (47.96194, 21.88667),
     "Szentgotthárd / Farkasfa (SYNOP: 12910)": (46.91028, 16.30917),
     "Sármellék (SYNOP: 12922)": (46.69417, 17.15722),
     "Nagykanizsa (SYNOP: 12925)": (46.45583, 16.97056),
@@ -43,7 +43,7 @@ synop_stations = {
     "Baja (SYNOP: 12960)": (46.17944, 19.01056),
     "Kecskemét (SYNOP: 12970)": (46.91194, 19.75944),
     "Szeged (SYNOP: 12982)": (46.25583, 20.09056),
-    "Békéscsaba (SYNOP: 12992)": (46.67944, 21.16056)
+    #"Békéscsaba (SYNOP: 12992)": (46.67944, 21.16056)
 }
 
 # ------------------------------------------------------------------------------------------------------------------------------------
@@ -420,7 +420,7 @@ class MeasuredData:
 
 def plotAll(city_name, nearest_station_name, aifs_data, ifs_data, measured_data):
     # Diagramok mentési mappájának beállítása
-    output_dir = r"C:\Users\opago\Documents\Projektek\TDK\Z_animations_diagrams\SYNOP_meteograms"
+    output_dir = "SYNOP_meteograms"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
