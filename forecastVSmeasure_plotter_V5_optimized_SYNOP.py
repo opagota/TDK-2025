@@ -11,28 +11,28 @@ import math
 
 # --- SYNOP dict ---
 synop_stations = {
-    # "Szécsény (SYNOP: 12756)": (48.10667, 19.51556),
-    # "Jósvafő (SYNOP: 12766)": (48.49528, 20.53583),
-    # "Miskolc (SYNOP: 12772)": (48.09444, 20.72667),
-    # "Záhony (SYNOP: 12786)": (48.39833, 22.17722),
-    # "Sopron (SYNOP: 12805)": (47.67806, 16.60194),
-    # "Szombathely (SYNOP: 12812)": (47.19703, 16.64778),
-    # "Mosonmagyaróvár (SYNOP: 12815)": (47.88944, 17.26694),
-    # "Pér repülőtér (SYNOP: 12821)": (47.62417, 17.81167),
-    # "Győr (SYNOP: 12822)": (47.71000, 17.67444),
-    # "Pápa repülőtér (dél) (SYNOP: 12824)": (47.35667, 17.50333),
-    # "Veszprém - Szentkirályszabadja (SYNOP: 12830)": (47.08278, 17.97056),
-    # "Tata (SYNOP: 12836)": (47.65028, 18.30750),
-    # "Budapest - Lőrinc (SYNOP: 12843)": (47.42917, 19.18194),
-    # "Agárd (SYNOP: 12846)": (47.18972, 18.58333),
-    # "Tát (SYNOP: 12847)": (47.75639, 18.60583),
-    # "Kékestető (SYNOP: 12851)": (47.87194, 20.01278),
-    # "Szolnok (SYNOP: 12860)": (47.11694, 20.23083),
-    # "Poroszló (SYNOP: 12866)": (47.65583, 20.65333),
-    # "Eger (SYNOP: 12870)": (47.90389, 20.38889),
-    # "Debrecen (SYNOP: 12882)": (47.48417, 21.60556),
-    # #"Nyíregyháza - Napkor (SYNOP: 12892)": (47.96194, 21.88667), #adathiany!
-    # "Szentgotthárd - Farkasfa (SYNOP: 12910)": (46.91028, 16.30917),
+    "Szécsény (SYNOP: 12756)": (48.10667, 19.51556),
+    "Jósvafő (SYNOP: 12766)": (48.49528, 20.53583),
+    "Miskolc (SYNOP: 12772)": (48.09444, 20.72667),
+    "Záhony (SYNOP: 12786)": (48.39833, 22.17722),
+    "Sopron (SYNOP: 12805)": (47.67806, 16.60194),
+    "Szombathely (SYNOP: 12812)": (47.19703, 16.64778),
+    "Mosonmagyaróvár (SYNOP: 12815)": (47.88944, 17.26694),
+    "Pér repülőtér (SYNOP: 12821)": (47.62417, 17.81167),
+    "Győr (SYNOP: 12822)": (47.71000, 17.67444),
+    "Pápa repülőtér (dél) (SYNOP: 12824)": (47.35667, 17.50333),
+    "Veszprém - Szentkirályszabadja (SYNOP: 12830)": (47.08278, 17.97056),
+    "Tata (SYNOP: 12836)": (47.65028, 18.30750),
+    "Budapest - Lőrinc (SYNOP: 12843)": (47.42917, 19.18194),
+    "Agárd (SYNOP: 12846)": (47.18972, 18.58333),
+    "Tát (SYNOP: 12847)": (47.75639, 18.60583),
+    "Kékestető (SYNOP: 12851)": (47.87194, 20.01278),
+    "Szolnok (SYNOP: 12860)": (47.11694, 20.23083),
+    "Poroszló (SYNOP: 12866)": (47.65583, 20.65333),
+    "Eger (SYNOP: 12870)": (47.90389, 20.38889),
+    "Debrecen (SYNOP: 12882)": (47.48417, 21.60556),
+    #"Nyíregyháza - Napkor (SYNOP: 12892)": (47.96194, 21.88667), #adathiany!
+    "Szentgotthárd - Farkasfa (SYNOP: 12910)": (46.91028, 16.30917),
     "Sármellék (SYNOP: 12922)": (46.69417, 17.15722),
     "Nagykanizsa (SYNOP: 12925)": (46.45583, 16.97056),
     "Siófok (SYNOP: 12935)": (46.91056, 18.04056),
@@ -410,8 +410,7 @@ class MeasuredData:
 # ------------------------------------------------------------------------------------------------------------------------------------
 
 def plotAll(city_name, nearest_station_name, aifs_data, ifs_data, measured_data):
-    # Diagramok mentési mappájának beállítása
-    output_dir = r"C:/Users/opago/Documents/Projektek/TDK/Z_animations_diagrams"
+    output_dir = "animations_diagrams"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
